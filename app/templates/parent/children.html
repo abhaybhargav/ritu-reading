@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Manage Children – Ritu's ReadAlong Tutor{% endblock %}
+
+{% block content %}
+<div>
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <a href="/parent" class="text-sm text-gray-500 hover:text-primary-600 font-medium transition-colors">
+                ← Back to Dashboard
+            </a>
+            <h1 class="font-display text-3xl font-bold text-gray-900 mt-2">👧 Manage Children</h1>
+        </div>
+    </div>
+
+    <!-- Add child form -->
+    <div class="bg-white rounded-2xl shadow-md p-6 border border-orange-100 mb-8 max-w-lg"
+         x-data="{ showForm: false }">
+        <button @click="showForm = !showForm"
+                class="flex items-center gap-2 text-primary-600 font-bold hover:text-primary-700 transition-colors">
+            <svg class="w-5 h-5 transition-transform" :class="showForm && 'rotate-45'" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Add New Child
+        </button>
+
+        <form x-show="showForm" x-transition
+              hx-post="/parent/children/create"
+              hx-target="#children-list"
+              hx-swap="beforeend"
+              @htmx:after-request="showForm = false; $dispatch('notify', {message: 'Child added!', type: 'success'})"
+              class="mt-4 space-y-4">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Display Name</label>
+                <input type="text" name="display_name" required
+                       class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-400 focus:border-primary-400 text-sm"
+                       placeholder="e.g. Emma">
+            </div>
+            <button type="submit"
+                    class="px-4 py-2.5 bg-primary-500 text-white rounded-xl font-bold hover:bg-primary-600 transition-colors">
+                Create Child
+            </button>
+        </form>
+    </div>
+
+    <!-- Children list -->
+    <div id="children-list" class="space-y-4">
+        {% for child in children %}
+        <div class="bg-white rounded-xl sm:rounded-2xl shadow-md p-4 sm:p-5 border border-orange-100">
+            <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 sm:gap-4 min-w-0">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-kid-purple to-kid-pink flex items-center justify-center text-white font-bold text-base sm:text-lg flex-shrink-0">
+                        {{ child.display_name[0] | upper }}
+                    </div>
+                    <div class="min-w-0">
+                        <h3 class="font-display font-bold text-gray-800 text-sm sm:text-base truncate">{{ child.display_name }}</h3>
+                        <p class="text-xs sm:text-sm text-gray-500 truncate">{{ child.email }}</p>
+                    </div>
+                </div>
+                <span class="px-2 sm:px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-xs sm:text-sm font-bold flex-shrink-0">
+                    {% if child.level_state %}Lv {{ child.level_state.current_level }}{% else %}Lv 1{% endif %}
+                </span>
+            </div>
+            <div class="mt-3 flex items-center gap-2" x-data="{ editing: false }">
+                <form x-show="editing" x-transition
+                      hx-post="/parent/children/{{ child.id }}/level"
+                      hx-swap="none"
+                      @htmx:after-request="editing = false; $dispatch('notify', {message: 'Level updated!', type: 'success'})"
+                      class="flex items-center gap-2 w-full">
+                    <select name="level" class="flex-1 px-3 py-2 border rounded-lg text-sm">
+                        {% for l in range(1, 7) %}
+                        <option value="{{ l }}">Level {{ l }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="px-3 py-2 bg-primary-500 text-white rounded-lg text-sm font-bold">Set</button>
+                    <button type="button" @click="editing = false" class="px-3 py-2 bg-gray-200 rounded-lg text-sm font-bold">Cancel</button>
+                </form>
+                <button x-show="!editing" @click="editing = true"
+                        class="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors">
+                    ✏️ Change Level
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

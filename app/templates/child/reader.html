@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}{{ story.title }} – Ritu's ReadAlong Tutor{% endblock %}
+
+{% block head_extra %}
+<style>
+    .word-span { transition: all 0.2s ease; cursor: pointer; border-radius: 6px; display: inline-flex; align-items: center; }
+    @media (pointer: fine) { .word-span:hover { background-color: #e0e7ff; transform: scale(1.08); } }
+    .word-span:active { background-color: #c7d2fe; transform: scale(0.96); }
+    .word-correct { background-color: #bbf7d0; color: #166534; }
+    .word-fuzzy { background-color: #fef08a; color: #854d0e; }
+    .word-mismatch { background-color: #fecaca; color: #991b1b; }
+    .word-skip { background-color: #e5e7eb; color: #6b7280; text-decoration: line-through; }
+    .word-current { background-color: #bfdbfe; color: #1e40af; font-weight: 700; transform: scale(1.05); }
+    .word-upcoming { opacity: 0.6; }
+    .pulse-mic { animation: pulse-ring 1.5s ease infinite; }
+    @keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); } 70% { box-shadow: 0 0 0 12px rgba(239,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="readerApp()" x-init="init()">
+
+    <!-- Story header -->
+    <div class="mb-4 sm:mb-6">
+        <a href="/" class="text-sm text-gray-500 hover:text-primary-600 font-medium transition-colors touch-target inline-flex items-center">
+            ← Back to stories
+        </a>
+        <h1 class="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mt-1 sm:mt-2">{{ story.title }}</h1>
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 text-xs sm:text-sm text-gray-500">
+            <span class="inline-flex items-center gap-1 px-2 py-1 bg-primary-100 text-primary-700 rounded-full font-semibold">
+                ⭐ Level {{ story.level }}
+            </span>
+            <span>{{ story.word_count }} words</span>
+            {% if story.theme %}
+            <span class="px-2 py-1 bg-accent-100 text-accent-700 rounded-full font-semibold">{{ story.theme }}</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="mb-6 bg-gray-200 rounded-full h-3 overflow-hidden" x-show="state !== 'idle'">
+        <div class="h-full bg-gradient-to-r from-kid-green to-kid-blue rounded-full transition-all duration-500"
+             :style="`width: ${progress}%`"></div>
+    </div>
+
+    <!-- Story images -->
+    {% if story.images %}
+    <div class="flex gap-3 sm:gap-4 overflow-x-auto pb-3 mb-4 sm:mb-6 snap-x snap-mandatory -mx-3 px-3 sm:mx-0 sm:px-0">
+        {% for img in story.images %}
+        <img src="{{ img.image_path }}" alt="Story illustration"
+             class="h-32 w-32 sm:h-48 sm:w-48 object-cover rounded-xl sm:rounded-2xl shadow-md flex-shrink-0 snap-center border-2 border-white">
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Story text with word spans -->
+    <div class="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 mb-4 sm:mb-6 border border-orange-100">
+        <p class="text-xs text-gray-400 mb-2 sm:mb-3 flex items-center gap-1">
+            <span>👆</span> Tap any word to hear how it's pronounced
+        </p>
+        <div class="text-base sm:text-lg md:text-xl leading-relaxed font-body" id="story-text">
+            {% for word in words %}
+            <span class="word-span"
+                  :class="getWordClass({{ loop.index0 }})"
+                  data-index="{{ loop.index0 }}"
+                  @click="onWordClick({{ loop.index0 }})"
+                  title="Click to hear pronunciation">{{ word }}</span>
+            {% if not loop.last %} {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-gray-200 p-3 sm:p-4 z-40 reader-controls safe-area-bottom">
+        <div class="max-w-3xl mx-auto flex items-center justify-center gap-3 sm:gap-4">
+
+            <!-- Start / Stop button -->
+            <template x-if="state === 'idle'">
+                <button @click="startReading()"
+                        class="flex items-center gap-2 px-6 sm:px-8 py-3.5 sm:py-4 bg-gradient-to-r from-kid-green to-green-500 text-white rounded-2xl font-display font-bold text-base sm:text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all w-full sm:w-auto justify-center">
+                    🎤 Start Reading
+                </button>
+            </template>
+
+            <template x-if="state === 'recording'">
+                <div class="flex items-center gap-3 sm:gap-4 w-full justify-center">
+                    <button @click="pauseReading()"
+                            class="px-4 sm:px-6 py-3 bg-yellow-400 text-yellow-900 rounded-xl font-bold hover:bg-yellow-500 transition-colors text-sm sm:text-base">
+                        ⏸ Pause
+                    </button>
+                    <div class="pulse-mic w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-red-500 flex items-center justify-center shadow-lg flex-shrink-0">
+                        <span class="text-xl sm:text-2xl">🎤</span>
+                    </div>
+                    <button @click="stopReading()"
+                            class="px-4 sm:px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-300 transition-colors text-sm sm:text-base">
+                        ⏹ Stop
+                    </button>
+                </div>
+            </template>
+
+            <template x-if="state === 'paused'">
+                <div class="flex items-center gap-3 sm:gap-4 w-full justify-center">
+                    <button @click="resumeReading()"
+                            class="flex-1 sm:flex-none px-4 sm:px-6 py-3 bg-green-500 text-white rounded-xl font-bold hover:bg-green-600 transition-colors text-sm sm:text-base">
+                        ▶ Resume
+                    </button>
+                    <button @click="stopReading()"
+                            class="flex-1 sm:flex-none px-4 sm:px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-300 transition-colors text-sm sm:text-base">
+                        ⏹ Finish
+                    </button>
+                </div>
+            </template>
+
+            <template x-if="state === 'complete'">
+                <div class="flex items-center gap-3 sm:gap-4 w-full justify-center">
+                    <span class="text-2xl">🎉</span>
+                    <span class="font-display font-bold text-base sm:text-lg text-gray-800">Great job!</span>
+                    <a :href="scoreUrl"
+                       class="px-4 sm:px-6 py-3 bg-primary-500 text-white rounded-xl font-bold hover:bg-primary-600 transition-colors text-sm sm:text-base">
+                        See Score →
+                    </a>
+                </div>
+            </template>
+
+            <!-- Error state -->
+            <template x-if="state === 'error'">
+                <div class="text-center w-full">
+                    <p class="text-red-600 font-semibold mb-2 text-sm" x-text="errorMessage"></p>
+                    <button @click="state = 'idle'"
+                            class="px-4 py-2.5 bg-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-300">
+                        Try Again
+                    </button>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- Pronunciation popup (click any word) -->
+    <div x-show="showPronounce" x-transition
+         class="fixed inset-0 bg-black/30 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
+         @click.self="closePronounce()">
+        <div class="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 max-w-sm w-full text-center safe-area-bottom">
+            <span class="text-4xl sm:text-5xl block mb-2 sm:mb-3">🔊</span>
+            <p class="font-display text-base sm:text-lg font-bold text-gray-500 mb-1">This word is:</p>
+            <p class="text-3xl sm:text-4xl font-display font-bold text-primary-600 mb-3 sm:mb-4" x-text="pronounceWord"></p>
+
+            <!-- Phonetic breakdown (shown for tricky words) -->
+            <div x-show="pronouncePhonetic" class="mb-4 sm:mb-5 mx-auto max-w-xs">
+                <div class="bg-amber-50 border border-amber-200 rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3">
+                    <p class="text-xs font-bold text-amber-600 uppercase tracking-wide mb-1">How to say it:</p>
+                    <p class="text-sm text-amber-900 leading-relaxed font-body" x-text="pronouncePhonetic"></p>
+                </div>
+            </div>
+
+            <!-- Loading spinner -->
+            <div x-show="pronounceLoading" class="flex justify-center mb-4">
+                <div class="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
+            </div>
+
+            <div class="flex flex-col items-center gap-3" x-show="!pronounceLoading">
+                <!-- Main action buttons -->
+                <div class="flex gap-3 justify-center w-full">
+                    <button @click="replayPronunciation()"
+                            class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-5 py-3 bg-accent-500 text-white rounded-xl font-bold hover:bg-accent-600 transition-colors text-sm sm:text-base">
+                        🔊 Hear Again
+                    </button>
+                    <button @click="closePronounce()"
+                            class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-5 py-3 bg-kid-green text-white rounded-xl font-bold hover:bg-green-600 transition-colors text-sm sm:text-base">
+                        Got it! ✓
+                    </button>
+                </div>
+                <!-- Replay explanation only (shown for tricky words) -->
+                <button x-show="pronouncePhonetic"
+                        @click="replayExplanation()"
+                        class="flex items-center gap-2 px-4 py-2.5 bg-amber-100 text-amber-800 rounded-xl font-semibold text-sm hover:bg-amber-200 transition-colors">
+                    🗣 Hear Explanation Again
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom spacer for fixed controls (includes safe area) -->
+    <div class="h-28 sm:h-24"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const STORY_ID = {{ story.id }};
+    const TOTAL_WORDS = {{ words | length }};
+</script>
+<!-- cache-bust: timestamp changes on each server restart -->
+<script src="/static/js/reader.js?v={{ range(100000) | random }}"></script>
+{% endblock %}

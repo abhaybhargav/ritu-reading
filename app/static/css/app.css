@@ -1,0 +1,175 @@
+/* Ritu's ReadAlong Tutor – Custom styles */
+
+/* ================================================================
+   MOBILE-FIRST FOUNDATIONS
+   ================================================================ */
+
+/* Safe-area insets for notched phones (iPhone X+) */
+.safe-area-top {
+    padding-top: env(safe-area-inset-top, 0);
+}
+.safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* Prevent double-tap zoom on interactive elements */
+button, a, .touch-target, .word-span, input, select, textarea {
+    touch-action: manipulation;
+}
+
+/* Minimum touch target size (44x44 per WCAG / Apple HIG) */
+.touch-target {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Prevent text selection during touch interactions */
+.no-select {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* ================================================================
+   HTMX
+   ================================================================ */
+
+/* HTMX loading indicator */
+.htmx-indicator {
+    display: none;
+}
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+    display: inline-flex;
+}
+
+/* Smooth page transitions for HTMX */
+.htmx-swapping {
+    opacity: 0;
+    transition: opacity 0.15s ease-out;
+}
+
+/* ================================================================
+   TYPOGRAPHY & LAYOUT
+   ================================================================ */
+
+/* Line clamp utilities */
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Story text custom styling */
+#story-text {
+    font-size: 1.1rem;
+    line-height: 2;
+    word-spacing: 0.05em;
+}
+@media (min-width: 640px) {
+    #story-text {
+        font-size: 1.25rem;
+        word-spacing: 0.1em;
+    }
+}
+
+/* Word spans — mobile-optimized touch targets */
+.word-span {
+    padding: 4px 5px;
+    margin: 1px 0;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+}
+@media (min-width: 640px) {
+    .word-span {
+        padding: 2px 4px;
+        min-height: auto;
+    }
+}
+
+/* ================================================================
+   SCROLLBAR & INTERACTION
+   ================================================================ */
+
+/* Smooth scrollbar (desktop only — mobile uses native) */
+@media (pointer: fine) {
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #9ca3af;
+    }
+}
+
+/* Focus styles */
+input:focus, select:focus, textarea:focus {
+    outline: none;
+}
+
+/* Snap scroll */
+.snap-x {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+}
+.snap-center {
+    scroll-snap-align: center;
+}
+
+/* ================================================================
+   TABLES (responsive)
+   ================================================================ */
+
+table th {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.75rem;
+}
+
+/* Responsive table wrapper */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ================================================================
+   FIXED BOTTOM BAR (reader controls)
+   ================================================================ */
+
+.reader-controls {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0));
+}
+
+/* ================================================================
+   MOBILE-SPECIFIC OVERRIDES
+   ================================================================ */
+
+/* Larger buttons on touch devices */
+@media (pointer: coarse) {
+    .btn-mobile-lg {
+        min-height: 48px;
+        font-size: 1rem;
+    }
+}
+
+/* Reduce visual weight on very small screens */
+@media (max-width: 374px) {
+    #story-text {
+        font-size: 1rem;
+        line-height: 1.8;
+    }
+    .word-span {
+        padding: 3px 3px;
+    }
+}

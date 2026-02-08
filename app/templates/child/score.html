@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Your Score – Ritu's ReadAlong Tutor{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-4 sm:py-8">
+
+    <!-- Score hero -->
+    <div class="text-center mb-6 sm:mb-8">
+        <span class="text-5xl sm:text-6xl block mb-3 sm:mb-4">
+            {% if attempt.score_total and attempt.score_total >= 85 %}🌟
+            {% elif attempt.score_total and attempt.score_total >= 70 %}⭐
+            {% elif attempt.score_total and attempt.score_total >= 50 %}👍
+            {% else %}💪{% endif %}
+        </span>
+        <h1 class="font-display text-3xl sm:text-4xl font-bold text-gray-900">
+            {% if attempt.score_total and attempt.score_total >= 85 %}Amazing!
+            {% elif attempt.score_total and attempt.score_total >= 70 %}Great Job!
+            {% elif attempt.score_total and attempt.score_total >= 50 %}Good Effort!
+            {% else %}Keep Going!{% endif %}
+        </h1>
+        <p class="text-gray-500 mt-2 font-medium">{{ story.title }}</p>
+    </div>
+
+    <!-- Main score -->
+    <div class="bg-white rounded-2xl sm:rounded-3xl shadow-xl p-5 sm:p-8 mb-4 sm:mb-6 border border-orange-100"
+         x-data="{ score: 0 }" x-init="setTimeout(() => score = {{ attempt.score_total or 0 }}, 200)">
+        <div class="text-center mb-4 sm:mb-6">
+            <div class="text-5xl sm:text-7xl font-display font-bold text-primary-600" x-text="Math.round(score)">0</div>
+            <div class="text-sm text-gray-500 font-semibold mt-1">out of 100</div>
+        </div>
+
+        <!-- Sub-scores -->
+        <div class="grid grid-cols-3 gap-2 sm:gap-4">
+            <div class="text-center p-2.5 sm:p-4 bg-green-50 rounded-xl sm:rounded-2xl">
+                <div class="text-xl sm:text-2xl font-bold text-green-600">{{ "%.0f"|format(attempt.score_accuracy or 0) }}</div>
+                <div class="text-[10px] sm:text-xs font-semibold text-green-700 mt-1">Accuracy</div>
+                <div class="text-[10px] sm:text-xs text-gray-400">/ {{ 60 }}</div>
+            </div>
+            <div class="text-center p-2.5 sm:p-4 bg-blue-50 rounded-xl sm:rounded-2xl">
+                <div class="text-xl sm:text-2xl font-bold text-blue-600">{{ "%.0f"|format(attempt.score_fluency or 0) }}</div>
+                <div class="text-[10px] sm:text-xs font-semibold text-blue-700 mt-1">Fluency</div>
+                <div class="text-[10px] sm:text-xs text-gray-400">/ {{ 25 }}</div>
+            </div>
+            <div class="text-center p-2.5 sm:p-4 bg-purple-50 rounded-xl sm:rounded-2xl">
+                <div class="text-xl sm:text-2xl font-bold text-purple-600">{{ "%.0f"|format(attempt.score_independence or 0) }}</div>
+                <div class="text-[10px] sm:text-xs font-semibold text-purple-700 mt-1">Independence</div>
+                <div class="text-[10px] sm:text-xs text-gray-400">/ {{ 15 }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary -->
+    {% if summary %}
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-orange-100">
+        {% if summary.encouragement %}
+        <p class="text-lg font-semibold text-gray-800 mb-4">{{ summary.encouragement }}</p>
+        {% endif %}
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% if summary.wins %}
+            <div class="p-4 bg-green-50 rounded-xl">
+                <h3 class="font-display font-bold text-green-700 mb-2">🏆 Words You Nailed</h3>
+                <div class="flex flex-wrap gap-2">
+                    {% for w in summary.wins %}
+                    <span class="px-3 py-1 bg-green-200 text-green-800 rounded-full text-sm font-bold">{{ w }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if summary.practice_words %}
+            <div class="p-4 bg-yellow-50 rounded-xl">
+                <h3 class="font-display font-bold text-yellow-700 mb-2">📝 Practice These</h3>
+                <div class="flex flex-wrap gap-2">
+                    {% for w in summary.practice_words %}
+                    <span class="px-3 py-1 bg-yellow-200 text-yellow-800 rounded-full text-sm font-bold">{{ w }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Reading speed -->
+    {% if attempt.wpm_estimate %}
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-orange-100 text-center">
+        <p class="text-gray-500 font-medium text-sm">Reading Speed</p>
+        <p class="text-3xl font-bold text-accent-600 mt-1">{{ "%.0f"|format(attempt.wpm_estimate) }} <span class="text-base font-normal text-gray-400">words/min</span></p>
+    </div>
+    {% endif %}
+
+    <!-- Words being practiced (from pronunciation lookups and misses) -->
+    {% if problem_words %}
+    <div class="bg-white rounded-2xl shadow-lg p-5 sm:p-6 mb-6 border border-orange-100">
+        <h3 class="font-display font-bold text-gray-800 mb-1 text-base sm:text-lg">📝 Words You're Practising</h3>
+        <p class="text-xs text-gray-400 mb-4">These are words you asked for help with. They'll show up in your next stories!</p>
+        <div class="flex flex-wrap gap-2">
+            {% for pw in problem_words %}
+            <div class="group relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold transition-colors
+                        {% if pw.mastery_score >= 0.67 %}bg-green-100 text-green-700 border border-green-200
+                        {% elif pw.mastery_score >= 0.34 %}bg-amber-100 text-amber-700 border border-amber-200
+                        {% else %}bg-red-50 text-red-600 border border-red-200{% endif %}">
+                <span>{{ pw.word }}</span>
+                {% if pw.mastery_score >= 0.67 %}
+                <span class="text-xs" title="Almost mastered!">🌟</span>
+                {% elif pw.mastery_score >= 0.34 %}
+                <span class="text-xs" title="Getting better!">⭐</span>
+                {% else %}
+                <span class="text-xs" title="Keep practising!">💪</span>
+                {% endif %}
+                <!-- Tooltip on hover/tap -->
+                <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                    {% if pw.total_lookups > 0 %}Looked up {{ pw.total_lookups }}x{% endif %}
+                    {% if pw.total_misses > 0 %}{% if pw.total_lookups > 0 %} · {% endif %}Missed {{ pw.total_misses }}x{% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <p class="text-xs text-gray-400 mt-3">
+            Read these words correctly 3 times and they'll be removed from the list! ✓
+        </p>
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+        <a href="/stories/{{ story.id }}"
+           class="px-6 py-3 bg-accent-500 text-white rounded-xl font-bold text-center hover:bg-accent-600 transition-colors">
+            🔄 Read Again
+        </a>
+        <a href="/"
+           class="px-6 py-3 bg-primary-500 text-white rounded-xl font-bold text-center hover:bg-primary-600 transition-colors">
+            📚 Try Another Story
+        </a>
+    </div>
+</div>
+{% endblock %}

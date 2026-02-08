@@ -1,0 +1,14 @@
+<div class="bg-white rounded-2xl shadow-md p-5 border border-orange-100 flex items-center justify-between">
+    <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-kid-purple to-kid-pink flex items-center justify-center text-white font-bold text-lg">
+            {{ child.display_name[0] | upper }}
+        </div>
+        <div>
+            <h3 class="font-display font-bold text-gray-800">{{ child.display_name }}</h3>
+            <p class="text-sm text-gray-500">{{ child.email }}</p>
+        </div>
+    </div>
+    <span class="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-bold">
+        Level 1
+    </span>
+</div>

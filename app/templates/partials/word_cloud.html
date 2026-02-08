@@ -1,0 +1,16 @@
+{% if problem_words %}
+<div class="flex flex-wrap gap-2">
+    {% for pw in problem_words %}
+    <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-bold
+        {% if pw.total_misses >= 5 %}bg-red-100 text-red-700
+        {% elif pw.total_misses >= 3 %}bg-yellow-100 text-yellow-700
+        {% else %}bg-gray-100 text-gray-600{% endif %}"
+        title="Missed {{ pw.total_misses }} times, {{ pw.total_hints }} hints">
+        {{ pw.word }}
+        <span class="text-xs opacity-60">×{{ pw.total_misses }}</span>
+    </span>
+    {% endfor %}
+</div>
+{% else %}
+<p class="text-gray-400 text-sm text-center py-4">No problem words yet – great reading! 🎉</p>
+{% endif %}

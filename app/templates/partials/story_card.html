@@ -1,0 +1,32 @@
+<div class="group bg-white rounded-xl sm:rounded-2xl shadow-md hover:shadow-xl border border-orange-100 overflow-hidden transition-all duration-200 transform hover:-translate-y-1"
+     data-level="{{ story.level }}"
+     x-show="filterLevel === 0 || filterLevel === {{ story.level }}"
+     x-transition>
+    {% if story.images %}
+    <div class="h-36 sm:h-40 overflow-hidden">
+        <img src="{{ story.images[0].image_path }}" alt="{{ story.title }}"
+             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+    </div>
+    {% else %}
+    <div class="h-36 sm:h-40 bg-gradient-to-br from-primary-100 to-accent-100 flex items-center justify-center">
+        <span class="text-4xl sm:text-5xl">📖</span>
+    </div>
+    {% endif %}
+    <div class="p-4 sm:p-5">
+        <div class="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2">
+            <span class="px-2 py-0.5 bg-primary-100 text-primary-700 rounded-full text-xs font-bold">
+                ⭐ Level {{ story.level }}
+            </span>
+            <span class="text-xs text-gray-400">{{ story.word_count }} words</span>
+            {% if story.theme %}
+            <span class="px-2 py-0.5 bg-accent-50 text-accent-600 rounded-full text-xs font-semibold">{{ story.theme }}</span>
+            {% endif %}
+        </div>
+        <h3 class="font-display font-bold text-gray-800 text-base sm:text-lg mb-2 line-clamp-2">{{ story.title }}</h3>
+        <p class="text-xs sm:text-sm text-gray-500 line-clamp-2 mb-3 sm:mb-4">{{ story.text[:120] }}...</p>
+        <a href="/stories/{{ story.id }}"
+           class="inline-flex items-center justify-center gap-1 w-full sm:w-auto px-4 py-2.5 sm:py-2 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl font-bold text-sm hover:from-primary-600 hover:to-primary-700 transition-all">
+            📖 Read Now
+        </a>
+    </div>
+</div>

@@ -1,0 +1,9 @@
+{% if level_state %}
+<span class="inline-flex items-center gap-1 px-3 py-1.5 bg-primary-100 text-primary-700 rounded-full font-bold text-sm">
+    ⭐ Level {{ level_state.current_level }}
+</span>
+{% else %}
+<span class="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-500 rounded-full font-bold text-sm">
+    ⭐ Level 1
+</span>
+{% endif %}

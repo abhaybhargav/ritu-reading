@@ -1,0 +1,23 @@
+<div class="bg-white rounded-2xl shadow-lg p-6 border border-orange-100">
+    <h2 class="font-display text-2xl font-bold text-gray-800 mb-2">{{ story.title }}</h2>
+    <div class="flex items-center gap-3 mb-4">
+        <span class="px-2 py-1 bg-primary-100 text-primary-700 rounded-full text-xs font-bold">⭐ Level {{ story.level }}</span>
+        <span class="text-sm text-gray-500">{{ story.word_count }} words</span>
+    </div>
+
+    {% if story.images %}
+    <div class="flex gap-3 mb-4 overflow-x-auto">
+        {% for img in story.images %}
+        <img src="{{ img.image_path }}" alt="Illustration" class="h-32 w-32 object-cover rounded-xl shadow flex-shrink-0">
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="prose prose-sm max-w-none text-gray-700 leading-relaxed">
+        {{ story.text | replace('\n\n', '</p><p class="mb-3">') | safe }}
+    </div>
+
+    <a href="/stories/{{ story.id }}" class="inline-block mt-4 px-6 py-3 bg-primary-500 text-white rounded-xl font-bold hover:bg-primary-600 transition-colors">
+        📖 Start Reading
+    </a>
+</div>

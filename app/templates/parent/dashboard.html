@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Parent Dashboard – Ritu's ReadAlong Tutor{% endblock %}
+
+{% block content %}
+<div>
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-3 sm:gap-4">
+        <div>
+            <h1 class="font-display text-2xl sm:text-3xl font-bold text-gray-900">Parent Dashboard</h1>
+            <p class="text-gray-500 mt-1 text-sm sm:text-base">
+                {% if child %}
+                    Viewing: <span class="font-semibold text-gray-700">{{ child.display_name }}</span>
+                {% else %}
+                    No children registered yet.
+                {% endif %}
+            </p>
+        </div>
+        <div class="flex gap-2 sm:gap-3 w-full sm:w-auto">
+            <a href="/parent/children"
+               class="flex-1 sm:flex-none text-center px-3 sm:px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs sm:text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+                👧 <span class="hidden xs:inline">Manage</span> Children
+            </a>
+            <a href="/parent/settings"
+               class="flex-1 sm:flex-none text-center px-3 sm:px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs sm:text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+                ⚙️ Settings
+            </a>
+        </div>
+    </div>
+
+    {% if child %}
+    <!-- Stats grid -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
+        <!-- Current level -->
+        <div class="bg-white rounded-2xl shadow-md p-5 border border-orange-100">
+            <p class="text-sm text-gray-500 font-medium">Current Level</p>
+            <p class="text-3xl font-display font-bold text-primary-600 mt-1">
+                {{ level_state.current_level if level_state else 1 }}
+            </p>
+            {% if level_state and level_state.last_decision_reason %}
+            <p class="text-xs text-gray-400 mt-2 line-clamp-2">{{ level_state.last_decision_reason }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Total attempts -->
+        <div class="bg-white rounded-2xl shadow-md p-5 border border-orange-100">
+            <p class="text-sm text-gray-500 font-medium">Total Attempts</p>
+            <p class="text-3xl font-display font-bold text-accent-600 mt-1">{{ attempts | length }}</p>
+        </div>
+
+        <!-- Avg score -->
+        <div class="bg-white rounded-2xl shadow-md p-5 border border-orange-100">
+            <p class="text-sm text-gray-500 font-medium">Avg Score (last 10)</p>
+            {% set avg = namespace(val=0) %}
+            {% if attempts %}
+                {% for a in attempts %}
+                    {% set avg.val = avg.val + (a.score_total or 0) %}
+                {% endfor %}
+                {% set avg.val = avg.val / (attempts | length) %}
+            {% endif %}
+            <p class="text-3xl font-display font-bold text-kid-green mt-1">{{ "%.0f"|format(avg.val) }}</p>
+        </div>
+
+        <!-- Problem words -->
+        <div class="bg-white rounded-2xl shadow-md p-5 border border-orange-100">
+            <p class="text-sm text-gray-500 font-medium">Problem Words</p>
+            <p class="text-3xl font-display font-bold text-kid-pink mt-1">{{ problem_words | length }}</p>
+        </div>
+    </div>
+
+    <!-- Two-column layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Score trend chart -->
+        <div class="lg:col-span-2 bg-white rounded-2xl shadow-md p-6 border border-orange-100">
+            <h2 class="font-display text-lg font-bold text-gray-800 mb-4">📈 Score Trend</h2>
+            <div class="h-64" x-data="chartData()" x-init="drawChart()">
+                <canvas id="scoreChart" class="w-full h-full"></canvas>
+            </div>
+        </div>
+
+        <!-- Problem words -->
+        <div class="bg-white rounded-2xl shadow-md p-6 border border-orange-100"
+             hx-get="/parent/partials/problem-words{% if child %}?child_id={{ child.id }}{% endif %}"
+             hx-trigger="load"
+             hx-swap="innerHTML"
+             id="problem-words-panel">
+            <h2 class="font-display text-lg font-bold text-gray-800 mb-4">🔤 Problem Words</h2>
+            <p class="text-gray-400 text-sm">Loading...</p>
+        </div>
+    </div>
+
+    <!-- Recent attempts -->
+    <div class="mt-8 bg-white rounded-2xl shadow-md p-6 border border-orange-100">
+        <h2 class="font-display text-lg font-bold text-gray-800 mb-4">📝 Recent Attempts</h2>
+        <div id="attempts-list"
+             hx-get="/parent/partials/attempts{% if child %}?child_id={{ child.id }}{% endif %}"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <p class="text-gray-400 text-sm">Loading...</p>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Empty state -->
+    <div class="text-center py-16">
+        <span class="text-6xl mb-4 block">👶</span>
+        <p class="text-gray-500 text-lg font-medium">No children added yet.</p>
+        <a href="/parent/children"
+           class="inline-block mt-4 px-6 py-3 bg-primary-500 text-white rounded-xl font-bold hover:bg-primary-600 transition-colors">
+            Add a Child
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Chart.js for score trend -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+    const SCORE_TREND = {{ score_trend_json | safe }};
+
+    function chartData() {
+        return {
+            drawChart() {
+                const ctx = document.getElementById('scoreChart');
+                if (!ctx || SCORE_TREND.length === 0) return;
+
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: SCORE_TREND.map(d => d.date),
+                        datasets: [
+                            {
+                                label: 'Total Score',
+                                data: SCORE_TREND.map(d => d.score),
+                                borderColor: '#ed7d0e',
+                                backgroundColor: 'rgba(237,125,14,0.1)',
+                                fill: true,
+                                tension: 0.4,
+                                borderWidth: 3,
+                                pointRadius: 4,
+                            },
+                            {
+                                label: 'Accuracy',
+                                data: SCORE_TREND.map(d => d.accuracy),
+                                borderColor: '#4ade80',
+                                tension: 0.4,
+                                borderWidth: 2,
+                                pointRadius: 3,
+                                borderDash: [5, 5],
+                            },
+                        ],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: true, max: 100, grid: { color: '#f3f4f6' } },
+                            x: { grid: { display: false } },
+                        },
+                        plugins: {
+                            legend: { position: 'bottom' },
+                        },
+                    },
+                });
+            },
+        };
+    }
+</script>
+{% endblock %}

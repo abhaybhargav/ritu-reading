@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}Ritu's ReadAlong Tutor – Let's Read!{% endblock %}
+
+{% block content %}
+<div x-data="{ showGenerate: false }">
+
+    <!-- Hero section -->
+    <section class="text-center py-6 sm:py-8 md:py-12">
+        <h1 class="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-2 sm:mb-3">
+            Hello{% if child %}, {{ child.display_name }}{% endif %}! 👋
+        </h1>
+        <p class="text-base sm:text-lg text-gray-600 font-medium mb-4 sm:mb-6">
+            Ready to read an amazing story today?
+        </p>
+
+        {% if level_state %}
+        <div id="level-badge" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-100 text-primary-800 rounded-full font-bold text-sm mb-4 sm:mb-6"
+             hx-get="/api/level_state"
+             hx-trigger="levelChanged from:body"
+             hx-swap="innerHTML">
+            ⭐ Level {{ level_state.current_level }}
+            <span class="text-primary-600 font-normal">·</span>
+            <span class="font-normal text-primary-600">Keep going!</span>
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- Generate story button -->
+    <section class="flex justify-center mb-6 sm:mb-8 px-2">
+        <button @click="showGenerate = !showGenerate"
+                class="group flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-2xl font-bold shadow-lg shadow-primary-200 hover:shadow-xl hover:shadow-primary-300 hover:from-primary-600 hover:to-primary-700 transition-all duration-200 transform hover:scale-105 w-full sm:w-auto">
+            <span class="text-xl">✨</span>
+            Generate New Story
+            <svg class="w-4 h-4 transition-transform" :class="showGenerate && 'rotate-180'" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+        </button>
+    </section>
+
+    <!-- Story generation form (expandable) -->
+    <section x-show="showGenerate" x-transition class="max-w-lg mx-auto mb-8 sm:mb-10 px-1">
+        <form hx-post="/api/stories/generate"
+              hx-target="#story-list"
+              hx-swap="afterbegin"
+              @htmx:after-request="showGenerate = false; $dispatch('notify', {message: 'Creating your story... watch for it below!', type: 'info'})"
+              class="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 border border-orange-100">
+            <h3 class="font-display text-lg font-bold text-gray-800 mb-4">🎨 Story Options</h3>
+
+            <div class="space-y-4">
+                <!-- Level selector -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Reading Level</label>
+                    <div class="grid grid-cols-6 gap-1.5 sm:gap-2">
+                        {% for l in range(1, 7) %}
+                        <label class="relative">
+                            <input type="radio" name="level" value="{{ l }}"
+                                   {% if level_state and level_state.current_level == l %}checked{% elif not level_state and l == 1 %}checked{% endif %}
+                                   class="peer sr-only">
+                            <div class="peer-checked:bg-primary-500 peer-checked:text-white peer-checked:border-primary-500
+                                        bg-gray-50 border-2 border-gray-200 rounded-xl py-2.5 sm:py-3 text-center cursor-pointer
+                                        hover:border-primary-300 transition-all text-sm sm:text-base font-bold text-gray-600">
+                                {{ l }}
+                            </div>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1.5">
+                        {% if level_state %}Your current level is {{ level_state.current_level }} — pick any level to practice!{% else %}Pick a reading level{% endif %}
+                    </p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Theme (optional)</label>
+                    <input type="text" name="theme" placeholder="e.g. space adventure, dinosaurs, fairy tales..."
+                           class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-400 focus:border-primary-400 transition-all text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Interests (optional)</label>
+                    <input type="text" name="interests" placeholder="e.g. robots, animals, magic..."
+                           class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-400 focus:border-primary-400 transition-all text-sm">
+                </div>
+                {% if child %}
+                <input type="hidden" name="child_id" value="{{ child.id }}">
+                {% endif %}
+            </div>
+
+            <div class="mt-5 sm:mt-6">
+                <button type="submit"
+                        class="w-full px-4 py-3 sm:py-2.5 bg-primary-500 text-white rounded-xl font-bold hover:bg-primary-600 transition-colors">
+                    Generate Story ✨
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <!-- Stories grid -->
+    <section x-data="{ filterLevel: 0 }">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
+            <h2 class="font-display text-xl sm:text-2xl font-bold text-gray-800">📚 Your Stories</h2>
+            <!-- Level filter pills -->
+            <div class="flex items-center gap-1.5 flex-wrap">
+                <button @click="filterLevel = 0"
+                        :class="filterLevel === 0 ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                        class="px-3 py-1.5 rounded-full text-xs font-bold transition-colors">
+                    All
+                </button>
+                {% for l in range(1, 7) %}
+                <button @click="filterLevel = {{ l }}"
+                        :class="filterLevel === {{ l }} ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                        class="px-3 py-1.5 rounded-full text-xs font-bold transition-colors">
+                    Lv {{ l }}
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div id="story-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {% if stories %}
+                {% for story in stories %}
+                    {% include "partials/story_card.html" %}
+                {% endfor %}
+            {% else %}
+                <div class="col-span-full text-center py-16">
+                    <span class="text-6xl mb-4 block">📖</span>
+                    <p class="text-gray-500 text-lg font-medium">No stories yet!</p>
+                    <p class="text-gray-400 text-sm mt-1">Click "Generate New Story" to create your first adventure.</p>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+</div>
+{% endblock %}

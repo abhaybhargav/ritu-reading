@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>{% block title %}Ritu's ReadAlong Tutor{% endblock %}</title>
+
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { 50: '#fef7ee', 100: '#fdedd3', 200: '#f9d8a5', 300: '#f5bc6d', 400: '#f09733', 500: '#ed7d0e', 600: '#de6208', 700: '#b84a09', 800: '#933b0e', 900: '#7a320f' },
+                        accent: { 50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc', 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 800: '#075985', 900: '#0c4a6e' },
+                        kid: { pink: '#f472b6', purple: '#a78bfa', green: '#4ade80', yellow: '#facc15', blue: '#60a5fa', orange: '#fb923c' },
+                    },
+                    fontFamily: {
+                        display: ['Fredoka', 'Comic Sans MS', 'cursive'],
+                        body: ['Nunito', 'system-ui', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <script src="https://unpkg.com/htmx-ext-ws@2.0.3/ws.js"></script>
+
+    <!-- Alpine.js -->
+    <script defer src="https://unpkg.com/alpinejs@3.14.8/dist/cdn.min.js"></script>
+
+    <!-- Custom styles -->
+    <link rel="stylesheet" href="/static/css/app.css">
+
+    {% block head_extra %}{% endblock %}
+</head>
+<body class="h-full bg-gradient-to-br from-orange-50 via-white to-sky-50 font-body text-gray-800">
+
+    <!-- Navigation -->
+    <nav class="bg-white/80 backdrop-blur-sm border-b border-orange-100 sticky top-0 z-50 safe-area-top">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-14 sm:h-16">
+                <a href="/" class="flex items-center gap-2 group">
+                    <span class="text-2xl sm:text-3xl">📚</span>
+                    <span class="font-display text-lg sm:text-xl font-bold text-primary-600 group-hover:text-primary-700 transition-colors">
+                        Ritu's ReadAlong Tutor
+                    </span>
+                </a>
+                <div class="flex items-center gap-1.5 sm:gap-3">
+                    <a href="/"
+                       class="px-3 py-2 rounded-lg text-sm font-semibold text-gray-600 hover:text-primary-600 hover:bg-primary-50 transition-all touch-target">
+                        📖 <span class="hidden sm:inline">Read</span>
+                    </a>
+                    <a href="/parent"
+                       class="px-3 py-2 rounded-lg text-sm font-semibold text-gray-600 hover:text-accent-600 hover:bg-accent-50 transition-all touch-target">
+                        👨‍👩‍👧 <span class="hidden sm:inline">Parent</span>
+                    </a>
+                    {% if request.session.get("user_id") %}
+                    <div class="hidden sm:flex items-center gap-1 text-xs text-gray-400 border-l border-gray-200 pl-3 ml-1">
+                        <span>{{ request.session.get("display_name", "") }}</span>
+                    </div>
+                    <a href="/logout"
+                       class="px-2.5 py-2 rounded-lg text-sm font-semibold text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all touch-target"
+                       title="Log out">
+                        🚪
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main content -->
+    <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Toast notifications -->
+    <div id="toast-container" class="fixed bottom-20 sm:bottom-6 right-3 left-3 sm:left-auto sm:right-6 z-50 flex flex-col gap-2"
+         x-data="{ toasts: [] }"
+         @notify.window="toasts.push({id: Date.now(), message: $event.detail.message, type: $event.detail.type || 'info'}); setTimeout(() => toasts.shift(), 4000)">
+        <template x-for="toast in toasts" :key="toast.id">
+            <div x-transition
+                 class="px-4 py-3 rounded-xl shadow-lg text-sm font-semibold"
+                 :class="{
+                    'bg-green-500 text-white': toast.type === 'success',
+                    'bg-red-500 text-white': toast.type === 'error',
+                    'bg-accent-500 text-white': toast.type === 'info',
+                 }"
+                 x-text="toast.message">
+            </div>
+        </template>
+    </div>
+
+    <!-- Bridge HTMX showToast trigger → Alpine notify event -->
+    <script>
+        document.body.addEventListener('showToast', function(e) {
+            var detail = e.detail || {};
+            window.dispatchEvent(new CustomEvent('notify', {
+                detail: { message: detail.message || 'Done!', type: detail.type || 'success' }
+            }));
+        });
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

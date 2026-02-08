@@ -1,0 +1,18 @@
+[project]
+name = "reading-tutor"
+version = "0.1.0"
+description = "Ritu's ReadAlong Tutor – A child reading coach web app"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi[standard]",
+    "jinja2",
+    "sqlalchemy[asyncio]",
+    "aiosqlite",
+    "python-multipart",
+    "python-dotenv",
+    "httpx",
+    "openai",
+    "websockets",
+    "itsdangerous>=2.2.0",
+]

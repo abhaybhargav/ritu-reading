@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Settings – Ritu's ReadAlong Tutor{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl">
+    <a href="/parent" class="text-sm text-gray-500 hover:text-primary-600 font-medium transition-colors">
+        ← Back to Dashboard
+    </a>
+    <h1 class="font-display text-3xl font-bold text-gray-900 mt-2 mb-8">⚙️ AI Settings</h1>
+
+    <div class="space-y-6">
+        <!-- Voice settings -->
+        <div class="bg-white rounded-2xl shadow-md p-6 border border-orange-100">
+            <h2 class="font-display text-lg font-bold text-gray-800 mb-4">🗣️ Coach Voice</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">ElevenLabs Voice ID</label>
+                    <input type="text" value="{{ settings.elevenlabs_voice_id }}" readonly
+                           class="w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-sm text-gray-600">
+                    <p class="text-xs text-gray-400 mt-1">Set via ELEVENLABS_VOICE_ID environment variable</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">TTS Model</label>
+                    <input type="text" value="{{ settings.elevenlabs_tts_model }}" readonly
+                           class="w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-sm text-gray-600">
+                </div>
+            </div>
+        </div>
+
+        <!-- Reading settings -->
+        <div class="bg-white rounded-2xl shadow-md p-6 border border-orange-100">
+            <h2 class="font-display text-lg font-bold text-gray-800 mb-4">📖 Reading Session</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Stall Timeout</label>
+                    <div class="px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-sm text-gray-600">
+                        {{ settings.stall_timeout_seconds }}s
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Fuzzy Match Threshold</label>
+                    <div class="px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-sm text-gray-600">
+                        {{ settings.fuzzy_match_threshold }} chars
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progression settings -->
+        <div class="bg-white rounded-2xl shadow-md p-6 border border-orange-100">
+            <h2 class="font-display text-lg font-bold text-gray-800 mb-4">📊 Progression</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Promote Threshold</label>
+                    <div class="px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-sm text-gray-600">
+                        {{ settings.promote_threshold }}%
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Demote Threshold</label>
+                    <div class="px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-sm text-gray-600">
+                        {{ settings.demote_threshold }}%
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Window Size</label>
+                    <div class="px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-sm text-gray-600">
+                        Last {{ settings.progression_window }} attempts
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Level ranges -->
+        <div class="bg-white rounded-2xl shadow-md p-6 border border-orange-100">
+            <h2 class="font-display text-lg font-bold text-gray-800 mb-4">📏 Level Word Ranges</h2>
+            <div class="space-y-2">
+                {% for level, range in settings.level_word_ranges.items() %}
+                <div class="flex items-center justify-between px-4 py-2 bg-gray-50 rounded-xl">
+                    <span class="font-semibold text-gray-700">Level {{ level }}</span>
+                    <span class="text-sm text-gray-500">{{ range[0] }} – {{ range[1] }} words</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <p class="text-xs text-gray-400 text-center py-4">
+            Settings are currently configured via environment variables. In-app editing coming soon.
+        </p>
+    </div>
+</div>
+{% endblock %}
