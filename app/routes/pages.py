@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 
 from app.auth import get_session_user, login_redirect, require_role
 from app.database import get_db
-from app.models import ProblemWordsAgg, ReadingAttempt, ReadingLevelState, Story, User
+from app.models import ReadingAttempt, ReadingLevelState, Story, User
 
 router = APIRouter()
 
@@ -127,23 +127,10 @@ async def score_page(
     import json
     summary = json.loads(attempt.summary_json) if attempt.summary_json else {}
 
-    # Fetch the child's current problem words for display
-    problem_words_result = await db.execute(
-        select(ProblemWordsAgg)
-        .where(
-            ProblemWordsAgg.user_id == attempt.user_id,
-            ProblemWordsAgg.mastery_score < 1.0,
-        )
-        .order_by(ProblemWordsAgg.total_lookups.desc(), ProblemWordsAgg.total_misses.desc())
-        .limit(15)
-    )
-    problem_words = problem_words_result.scalars().all()
-
     templates = _templates(request)
     return templates.TemplateResponse("child/score.html", {
         "request": request,
         "attempt": attempt,
         "story": story,
         "summary": summary,
-        "problem_words": problem_words,
     })

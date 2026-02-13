@@ -1,0 +1,20 @@
+services:
+  app:
+    build: .
+    image: ritus-readalong-tutor:latest
+    container_name: readalong-tutor
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - SESSION_SECRET=${SESSION_SECRET:-change-me-in-production}
+    volumes:
+      # Persist SQLite database and generated content across restarts
+      - app-data:/app/data
+      - tts-cache:/app/tts_cache
+    restart: unless-stopped
+
+volumes:
+  app-data:
+  tts-cache:

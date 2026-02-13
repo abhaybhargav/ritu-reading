@@ -27,6 +27,10 @@ You write engaging, imaginative, and age-appropriate stories.
 Rules:
 - Stories MUST be child-safe: no violence, scary content, or adult themes.
 - Use simple sentence structure at lower levels.
+- IMPORTANT: All characters MUST have Indian names (e.g. Riya, Arjun, Ananya, Kabir, \
+Meera, Vikram, Priya, Aarav, Diya, Rohan, Ishaan, Aisha, Neha, Siddharth, Kavya, \
+Advait, Saanvi, Veer, Tara, Krishna, Zara, Vivaan, Myra, Aditya, Nisha, etc.). \
+The stories can be set anywhere in the world, but the characters should have Indian names.
 - Return ONLY valid JSON with keys: "title", "text", "theme".
 - "text" should be the full story as a single string with paragraph breaks as \\n\\n.
 """
@@ -36,7 +40,6 @@ def _build_user_prompt(
     level: int,
     theme: str | None = None,
     interests: str | None = None,
-    practice_words: list[str] | None = None,
 ) -> str:
     word_range = settings.level_word_ranges.get(level, (100, 200))
     parts = [
@@ -47,18 +50,10 @@ def _build_user_prompt(
         parts.append(f"Theme: {theme}.")
     if interests:
         parts.append(f"The child is interested in: {interests}.")
-    if practice_words:
-        words_str = ", ".join(f'"{w}"' for w in practice_words)
-        parts.append(
-            f"IMPORTANT: The child is practising these words they previously "
-            f"found difficult: {words_str}. "
-            f"Naturally weave as many of these words as possible into the story "
-            f"(ideally each word appears at least once). Do NOT force them — "
-            f"the story must still read naturally and be enjoyable."
-        )
     parts.append(
         "Use vocabulary and sentence complexity appropriate for this level. "
-        "Lower levels should use short sentences and common words."
+        "Lower levels should use short sentences and common words. "
+        "Remember: all characters must have Indian names."
     )
     return " ".join(parts)
 
@@ -67,18 +62,14 @@ async def generate_story(
     level: int,
     theme: str | None = None,
     interests: str | None = None,
-    practice_words: list[str] | None = None,
 ) -> dict:
     """
     Generate a story and return {"title": ..., "text": ..., "theme": ..., "prompt": ..., "model_meta": ...}.
 
-    If *practice_words* are supplied, the prompt asks the model to
-    incorporate those words naturally so the child gets extra exposure.
-
     Raises on API or parse errors.
     """
     client = _get_client()
-    user_prompt = _build_user_prompt(level, theme, interests, practice_words)
+    user_prompt = _build_user_prompt(level, theme, interests)
 
     response = await client.chat.completions.create(
         model="gpt-4o-mini",

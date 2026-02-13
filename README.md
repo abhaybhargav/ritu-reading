@@ -6,7 +6,7 @@ A web application to help children (ages 5-9) improve reading accuracy, fluency,
 
 - **Backend:** Python FastAPI + Jinja2 + SQLite (SQLAlchemy async)
 - **Frontend:** TailwindCSS + HTMX + Alpine.js
-- **AI:** OpenAI (story & image generation), ElevenLabs (STT & TTS)
+- **AI:** OpenAI (story & image generation, phonetics), Sarvam AI (STT via Saarika, TTS via Bulbul)
 - **Package manager:** uv
 
 ## Quick Start
@@ -29,9 +29,8 @@ Open [http://localhost:8000](http://localhost:8000) in your browser.
 
 | Variable | Description |
 |---|---|
-| `OPENAI_API_KEY` | OpenAI API key for story & image generation |
-| `ELEVENLABS_API_KEY` | ElevenLabs API key for STT & TTS |
-| `ELEVENLABS_VOICE_ID` | ElevenLabs voice ID for coaching (default: Sarah) |
+| `OPENAI_API_KEY` | OpenAI API key for story & image generation, phonetics |
+| `SARVAM_API_KEY` | Sarvam AI API key for STT (Saarika) & TTS (Bulbul) |
 | `READING_TUTOR_DB_URL` | Database URL (default: SQLite in `data/`) |
 
 ## Features
@@ -58,8 +57,7 @@ reading-tutor/
 │   ├── services/              # Business logic
 │   │   ├── story_generator.py # OpenAI story generation
 │   │   ├── image_generator.py # OpenAI image generation
-│   │   ├── stt.py             # ElevenLabs speech-to-text
-│   │   ├── tts.py             # ElevenLabs text-to-speech + cache
+│   │   ├── tts.py             # Sarvam AI Bulbul TTS + cache
 │   │   ├── word_alignment.py  # Story-transcript word alignment
 │   │   ├── scoring.py         # Score computation
 │   │   └── progression.py     # Adaptive level progression

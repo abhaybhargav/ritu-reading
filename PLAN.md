@@ -38,9 +38,8 @@ Help an 8-year-old child improve reading **accuracy, fluency, and confidence** t
 
 ### AI providers
 
-* **OpenAI** for image generation OpenAI (Image generation via API models like `gpt-image-1`). ([OpenAI Platform][1])
-* **ElevenLabs** for speech-to-text + text-to-speech ElevenLabs. ([ElevenLabs][2])
-* **Mailtrap** for email OTP sending Mailtrap. ([Mailtrap Documentation][3])
+* **OpenAI** for image generation (via API models like `gpt-image-1`), story generation (`gpt-4o-mini`), and phonetics. ([OpenAI Platform][1])
+* **Sarvam AI** for speech-to-text (Saarika v2.5) + text-to-speech (Bulbul v3) with native Indian English support
 
 ---
 
@@ -119,7 +118,7 @@ The app will generate stories that follow **Ladybird Readers level word-count ra
 1. Open app → “Today’s Story” (or latest assigned story)
 2. Tap **Start Reading**
 3. Browser records mic audio in short chunks and streams to server
-4. Server transcribes via ElevenLabs STT and returns incremental text updates
+4. Server transcribes via Sarvam Saarika STT and returns incremental text updates
 5. Frontend highlights matched story words as the child speaks
 6. If a word is wrong or the child stalls:
 
@@ -190,9 +189,9 @@ The app will generate stories that follow **Ladybird Readers level word-count ra
 **FR-READ-2:** Use `MediaRecorder` to capture audio chunks (config default 1–2s).
 **FR-READ-3:** Stream chunks to server for transcription.
 
-### 6.3.2 Speech-to-text (ElevenLabs)
+### 6.3.2 Speech-to-text (Sarvam Saarika)
 
-**FR-STT-1:** Server transcribes audio using ElevenLabs STT “convert/transcribe” endpoint (batch or chunked near-realtime). ([ElevenLabs][6])
+**FR-STT-1:** Server transcribes audio using Sarvam Saarika v2.5 streaming WebSocket STT with Indian English (en-IN) support.
 **FR-STT-2:** Server sends incremental transcript updates back to client via:
 
 * WebSocket (preferred) OR
@@ -224,14 +223,14 @@ A “problem word event” triggers when:
 
 ---
 
-## 6.4 Coaching voice (ElevenLabs TTS)
+## 6.4 Coaching voice (Sarvam Bulbul TTS)
 
 **FR-TTS-1:** When a problem word triggers, generate coaching audio:
 
 * speak the correct word
 * speak a short tip (1–2 sentences)
-  **FR-TTS-2:** Use ElevenLabs TTS endpoint to generate speech. ([ElevenLabs][7])
-  **FR-TTS-3:** Cache TTS audio per `(voice_id, text)` for latency and cost.
+  **FR-TTS-2:** Use Sarvam Bulbul v3 TTS endpoint to generate speech.
+  **FR-TTS-3:** Cache TTS audio per `(speaker, text)` for latency and cost.
   **FR-TTS-4:** Parent can select a voice and strictness profile.
 
 **Acceptance criteria**
@@ -292,7 +291,7 @@ A “problem word event” triggers when:
   **FR-PARENT-2:** Create/disable child users.
   **FR-PARENT-3:** Configure AI settings:
 * image style preset
-* ElevenLabs voice_id
+* Sarvam TTS speaker
 * strictness
 * story themes/interests
   **FR-PARENT-4:** Export/delete child data.
@@ -465,8 +464,8 @@ A “problem word event” triggers when:
 * Hardcoded superuser bootstrapping: `abhaybhargav@gmail.com`
 * Mailtrap OTP login (parent + child)
 * Level 1 story generation (text) + OpenAI images (2+)
-* Read-aloud with chunked upload → ElevenLabs STT → word highlight
-* Coaching via ElevenLabs TTS + caching
+* Read-aloud with chunked upload → Sarvam Saarika STT → word highlight
+* Coaching via Sarvam Bulbul TTS + caching
 * Store attempts + word events + scores
 * Parent dashboard (basic)
 
@@ -499,9 +498,9 @@ If you want, I can now turn this PRD into a **Technical Design Doc** with:
 * the Mailtrap OTP email payload structure for `/api/send` (from/to/subject/html).
 
 [1]: https://platform.openai.com/docs/guides/image-generation?utm_source=chatgpt.com "Image generation | OpenAI API"
-[2]: https://elevenlabs.io/docs/overview/capabilities/speech-to-text?utm_source=chatgpt.com "Transcription | ElevenLabs Documentation"
+[2]: https://docs.sarvam.ai/ "Sarvam AI Documentation"
 [3]: https://docs.mailtrap.io/developers/sending/send-email-transactional?utm_source=chatgpt.com "Send Email - Transactional | API Docs | Mailtrap Help Center"
 [4]: https://wp.penguin.co.uk/wp-content/uploads/2025/03/Ladybird-Stocklist-2025.pdf?utm_source=chatgpt.com "Ladybird-Stocklist-2025.pdf"
 [5]: https://docs.mailtrap.io/email-api-smtp/setup/sending-domain?utm_source=chatgpt.com "Sending Domain Setup - Documentation | Mailtrap Help Center"
-[6]: https://elevenlabs.io/docs/api-reference/speech-to-text/convert?utm_source=chatgpt.com "Create transcript"
-[7]: https://elevenlabs.io/docs/api-reference/text-to-speech/convert?utm_source=chatgpt.com "Create speech | ElevenLabs Documentation"
+[6]: https://docs.sarvam.ai/ "Sarvam AI STT Documentation"
+[7]: https://docs.sarvam.ai/ "Sarvam AI TTS Documentation"

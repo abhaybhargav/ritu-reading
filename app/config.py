@@ -23,17 +23,17 @@ class Settings:
         "READING_TUTOR_DB_URL", f"sqlite+aiosqlite:///{DATA_DIR / 'readingtutor.db'}"
     )
 
-    # --- OpenAI ---
+    # --- OpenAI (used for story generation, image generation, phonetics) ---
     openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
 
-    # --- OpenAI Realtime API (streaming STT) ---
-    openai_realtime_url: str = "wss://api.openai.com/v1/realtime?intent=transcription"
-    openai_realtime_model: str = os.getenv("OPENAI_REALTIME_MODEL", "gpt-4o-transcribe")
+    # --- OpenAI TTS ---
+    openai_tts_model: str = os.getenv("OPENAI_TTS_MODEL", "tts-1")
+    openai_tts_voice: str = os.getenv("OPENAI_TTS_VOICE", "shimmer")
 
-    # --- ElevenLabs ---
-    elevenlabs_api_key: str = os.getenv("ELEVENLABS_API_KEY", "")
-    elevenlabs_voice_id: str = os.getenv("ELEVENLABS_VOICE_ID", "EXAVITQu4vr4xnSDxMaL")  # "Sarah" default
-    elevenlabs_tts_model: str = os.getenv("ELEVENLABS_TTS_MODEL", "eleven_multilingual_v2")
+    # --- Sarvam AI (STT only) ---
+    sarvam_api_key: str = os.getenv("SARVAM_API_KEY", "")
+    sarvam_stt_url: str = "wss://api.sarvam.ai/speech-to-text/ws"
+    sarvam_stt_model: str = os.getenv("SARVAM_STT_MODEL", "saarika:v2.5")
 
     # --- Ladybird Readers level word-count ranges ---
     level_word_ranges: dict[int, tuple[int, int]] = field(default_factory=lambda: {
@@ -59,6 +59,23 @@ class Settings:
     progression_window: int = 10  # last N attempts considered
     promote_threshold: float = 80.0
     demote_threshold: float = 45.0
+
+    # --- Mailtrap (email notifications) ---
+    mailtrap_api_token: str = os.getenv("MAILTRAP_API_TOKEN", "")
+    mailtrap_sender_email: str = os.getenv(
+        "MAILTRAP_SENDER_EMAIL", "digest@readalongtutorapp.com"
+    )
+    mailtrap_sender_name: str = os.getenv(
+        "MAILTRAP_SENDER_NAME", "Ritu's ReadAlong Tutor"
+    )
+    digest_recipient_emails: list[str] = field(default_factory=lambda: [
+        e.strip()
+        for e in os.getenv(
+            "DIGEST_RECIPIENT_EMAILS",
+            "abhaybhargav@gmail.com,dr.anushikababuv@gmail.com",
+        ).split(",")
+        if e.strip()
+    ])
 
     # --- Defaults ---
     default_superuser_email: str = "abhaybhargav@gmail.com"

@@ -14,7 +14,6 @@ from sqlalchemy.orm import selectinload
 from app.auth import login_redirect, require_role
 from app.database import get_db
 from app.models import (
-    ProblemWordsAgg,
     ReadingAttempt,
     ReadingLevelState,
     Story,
@@ -55,7 +54,6 @@ async def parent_dashboard(request: Request, db: AsyncSession = Depends(get_db))
     child = children[0] if children else None
     attempts = []
     level_state = None
-    problem_words = []
     score_trend = []
 
     if child:
@@ -75,22 +73,13 @@ async def parent_dashboard(request: Request, db: AsyncSession = Depends(get_db))
         )
         level_state = result.scalar_one_or_none()
 
-        # Problem words
-        result = await db.execute(
-            select(ProblemWordsAgg)
-            .where(ProblemWordsAgg.user_id == child.id)
-            .order_by(ProblemWordsAgg.total_misses.desc())
-            .limit(15)
-        )
-        problem_words = result.scalars().all()
-
         # Score trend for chart
         score_trend = [
             {
                 "date": a.started_at.strftime("%b %d") if a.started_at else "",
                 "score": a.score_total or 0,
-                "accuracy": a.score_accuracy or 0,
-                "fluency": a.score_fluency or 0,
+                "completion": a.score_accuracy or 0,
+                "effort": a.score_fluency or 0,
             }
             for a in reversed(attempts)
         ]
@@ -102,7 +91,7 @@ async def parent_dashboard(request: Request, db: AsyncSession = Depends(get_db))
         "child": child,
         "attempts": attempts,
         "level_state": level_state,
-        "problem_words": problem_words,
+        "problem_words": [],
         "score_trend_json": json.dumps(score_trend),
     })
 
@@ -149,29 +138,11 @@ async def partials_problem_words(
     child_id: int | None = None,
     db: AsyncSession = Depends(get_db),
 ):
-    """Return problem words as HTMX partial."""
-    if not child_id:
-        result = await db.execute(
-            select(User).where(User.role == "child_user").limit(1)
-        )
-        child = result.scalar_one_or_none()
-        child_id = child.id if child else None
-
-    if not child_id:
-        return HTMLResponse("<p class='text-gray-500'>No data</p>")
-
-    result = await db.execute(
-        select(ProblemWordsAgg)
-        .where(ProblemWordsAgg.user_id == child_id)
-        .order_by(ProblemWordsAgg.total_misses.desc())
-        .limit(15)
-    )
-    words = result.scalars().all()
-
+    """Return problem words as HTMX partial (deprecated — returns empty)."""
     from main import templates
     return templates.TemplateResponse("partials/word_cloud.html", {
         "request": request,
-        "problem_words": words,
+        "problem_words": [],
     })
 
 

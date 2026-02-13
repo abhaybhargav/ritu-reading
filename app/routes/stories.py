@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database import async_session as db_session_factory, get_db
-from app.models import ProblemWordsAgg, ReadingLevelState, Story, StoryImage, User
+from app.models import ReadingLevelState, Story, StoryImage, User
 from app.services.image_generator import generate_images_for_story
 from app.services.story_generator import generate_story
 
@@ -184,39 +184,11 @@ async def _background_generate(
 ) -> None:
     """Run story text + image generation entirely in the background."""
     try:
-        # 0. Fetch the child's current problem words for reinforcement
-        practice_words: list[str] = []
-        try:
-            async with db_session_factory() as db:
-                result = await db.execute(
-                    select(ProblemWordsAgg)
-                    .where(
-                        ProblemWordsAgg.user_id == child_id,
-                        ProblemWordsAgg.mastery_score < 1.0,
-                    )
-                    .order_by(ProblemWordsAgg.total_lookups.desc(), ProblemWordsAgg.total_misses.desc())
-                    .limit(10)
-                )
-                import re as _re
-                practice_words = [
-                    _re.sub(r"[^\w]", "", row.word).strip()
-                    for row in result.scalars().all()
-                ]
-                practice_words = [w for w in practice_words if w]  # drop empty
-            if practice_words:
-                logger.info(
-                    "Including %d practice words for child %s: %s",
-                    len(practice_words), child_id, practice_words,
-                )
-        except Exception:
-            logger.exception("Failed to fetch practice words, proceeding without them")
-
         # 1. Generate story text via OpenAI
         story_data = await generate_story(
             level=level,
             theme=theme,
             interests=interests,
-            practice_words=practice_words or None,
         )
 
         # 2. Save to DB

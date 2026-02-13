@@ -15,4 +15,5 @@ dependencies = [
     "openai",
     "websockets",
     "itsdangerous>=2.2.0",
+    "apscheduler>=3.10,<4",
 ]

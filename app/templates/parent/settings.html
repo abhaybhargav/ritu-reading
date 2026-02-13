@@ -11,17 +11,29 @@
     <div class="space-y-6">
         <!-- Voice settings -->
         <div class="bg-white rounded-2xl shadow-md p-6 border border-orange-100">
-            <h2 class="font-display text-lg font-bold text-gray-800 mb-4">🗣️ Coach Voice</h2>
+            <h2 class="font-display text-lg font-bold text-gray-800 mb-4">🗣️ Coach Voice (OpenAI TTS)</h2>
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">ElevenLabs Voice ID</label>
-                    <input type="text" value="{{ settings.elevenlabs_voice_id }}" readonly
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">TTS Voice</label>
+                    <input type="text" value="{{ settings.openai_tts_voice }}" readonly
                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-sm text-gray-600">
-                    <p class="text-xs text-gray-400 mt-1">Set via ELEVENLABS_VOICE_ID environment variable</p>
+                    <p class="text-xs text-gray-400 mt-1">Set via OPENAI_TTS_VOICE environment variable (alloy, echo, fable, onyx, nova, shimmer)</p>
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1">TTS Model</label>
-                    <input type="text" value="{{ settings.elevenlabs_tts_model }}" readonly
+                    <input type="text" value="{{ settings.openai_tts_model }}" readonly
+                           class="w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-sm text-gray-600">
+                </div>
+            </div>
+        </div>
+
+        <!-- STT settings -->
+        <div class="bg-white rounded-2xl shadow-md p-6 border border-orange-100">
+            <h2 class="font-display text-lg font-bold text-gray-800 mb-4">🎤 Speech Recognition (Sarvam AI)</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">STT Model</label>
+                    <input type="text" value="{{ settings.sarvam_stt_model }}" readonly
                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-sm text-gray-600">
                 </div>
             </div>

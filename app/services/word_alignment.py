@@ -4,6 +4,10 @@ Tuned for children reading aloud with Indian English accents.
 The fuzzy matching is intentionally lenient — it's better to give
 a child credit for a close-enough pronunciation than to mark them
 wrong because the STT model misheard an accent.
+
+Designed for FAST readers: aggressive lookahead, generous fuzzy
+matching in the lookahead window, and high max_advance so the
+cursor can keep up with rapid reading.
 """
 
 from __future__ import annotations
@@ -56,7 +60,6 @@ _PHONETIC_ALIASES: dict[str, set[str]] = {
     "art": {"are"},
     "matt": {"max"},
     "mac": {"max"},
-    "matt": {"max"},
     "macs": {"max"},
     "ken": {"can"},
     "bali": {"polly"},
@@ -130,21 +133,31 @@ def _fuzzy_ok(recognized: str, expected: str, threshold: int) -> bool:
     return False
 
 
+def _contains_word(recognized: str, expected: str) -> bool:
+    """Check if recognized contains expected or vice-versa (for compound STT output)."""
+    if len(expected) >= 3 and expected in recognized:
+        return True
+    if len(recognized) >= 3 and recognized in expected:
+        return True
+    return False
+
+
 def align_transcript_to_story(
     story_words: list[str],
     transcript_text: str,
     current_index: int = 0,
-    lookahead: int = 3,
+    lookahead: int = 8,
     fuzzy_threshold: int = 2,
-    max_advance: int = 10,
+    max_advance: int = 30,
 ) -> list[dict]:
     """
     Align recognised transcript tokens to story words starting from *current_index*.
 
-    Safety rules:
-      - Exact and fuzzy matches can trigger a skip (match ahead in the window).
-      - Mismatches do **not** advance the story cursor.
-      - Total advancement is capped at *max_advance* words per call.
+    Optimised for fast readers:
+      - Large lookahead window (8 words) so skipped/mumbled words don't block.
+      - Fuzzy matches are allowed in the lookahead window (not just exact).
+      - High max_advance (30 words per call) so rapid reading isn't throttled.
+      - Substring containment check for compound STT tokens.
 
     Returns a list of alignment events:
       [{"word_index": int, "expected": str, "recognized": str,
@@ -182,9 +195,8 @@ def align_transcript_to_story(
             trans_idx += 1
             continue
 
-        # --- 2. Exact match within lookahead (child skipped a word) ---
-        # Only exact matches trigger skips — fuzzy matches in the lookahead
-        # window are too risky and cause the cursor to jump ahead falsely.
+        # --- 2. Look ahead: exact OR fuzzy match within the lookahead window ---
+        # If the child skipped a word or two, find where they are now.
         skip_target = -1
         skip_match_type = "correct"
         for offset in range(1, min(lookahead + 1, len(story_words) - story_idx)):
@@ -192,6 +204,14 @@ def align_transcript_to_story(
             if recognized == ahead_norm:
                 skip_target = offset
                 skip_match_type = "correct"
+                break
+            if _fuzzy_ok(recognized, ahead_norm, fuzzy_threshold):
+                skip_target = offset
+                skip_match_type = "fuzzy"
+                break
+            if _contains_word(recognized, ahead_norm):
+                skip_target = offset
+                skip_match_type = "fuzzy"
                 break
 
         if skip_target > 0:
@@ -226,7 +246,20 @@ def align_transcript_to_story(
             trans_idx += 1
             continue
 
-        # --- 4. No match — stay on the same story word ---
+        # --- 4. Substring containment at current position ---
+        if _contains_word(recognized, expected_norm):
+            events.append({
+                "word_index": story_idx,
+                "expected": story_words[story_idx],
+                "recognized": raw_token,
+                "match": "fuzzy",
+            })
+            story_idx += 1
+            words_advanced += 1
+            trans_idx += 1
+            continue
+
+        # --- 5. No match — stay on the same story word ---
         events.append({
             "word_index": story_idx,
             "expected": story_words[story_idx],

@@ -1,0 +1,32 @@
+# Version control
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[oc]
+*.egg-info
+.venv
+
+# Environment (secrets — pass at runtime)
+.env
+
+# Generated data (mount as volume)
+data/*.db
+data/images/*.png
+tts_cache/*.mp3
+
+# IDE & OS
+.idea/
+.vscode/
+.cursor/
+.DS_Store
+
+# Docs & plans
+PLAN.md
+*.plan.md
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore

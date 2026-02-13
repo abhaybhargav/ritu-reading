@@ -4,13 +4,13 @@
  * Audio capture: AudioContext (native sample rate) → ScriptProcessorNode →
  *   Float32 → downsample to 24 kHz → Int16 PCM → binary WebSocket frames.
  *
- * Our server relays the PCM to the OpenAI Realtime API and sends
+ * Our server relays the PCM to the Sarvam Saarika STT API and sends
  * back word-alignment events which drive the highlighting UI.
  *
  * Coaching is on-demand: click any word to hear it pronounced.
  */
 
-const TARGET_SAMPLE_RATE = 24000;
+const TARGET_SAMPLE_RATE = 16000;
 const PCM_SEND_INTERVAL_MS = 150;
 const SCRIPT_PROCESSOR_BUFSIZE = 4096;
 

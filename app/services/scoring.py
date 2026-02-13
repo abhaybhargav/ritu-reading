@@ -1,11 +1,13 @@
-"""Compute scores for a reading attempt based on word events."""
+"""Compute scores for a reading attempt based on completion.
+
+The primary metric is how much of the story the child actually read
+through. This avoids penalising fast readers whose STT lags behind,
+and keeps the score encouraging and motivating.
+"""
 
 from __future__ import annotations
 
-import json
 from typing import Any
-
-from app.config import settings
 
 
 def compute_score(
@@ -16,92 +18,107 @@ def compute_score(
     skips: int,
 ) -> dict[str, Any]:
     """
-    Compute a 0-100 reading score with sub-scores.
+    Compute a 0-100 reading score focused on COMPLETION.
 
-    word_events: list of {"event_type": "correct"|"mismatch"|"skip"|"stall"|"hint", ...}
+    Breakdown (out of 100):
+      - Completion (0-80): % of story words the cursor reached.
+      - Effort     (0-20): bonus for finishing, scaled by time spent.
+
+    word_events: list of {"event_type": "correct"|"fuzzy"|"mismatch"|"skip"|...}
 
     Returns:
       {
         "total": float,
-        "accuracy": float,
-        "fluency": float,
-        "independence": float,
+        "completion": float,
+        "effort": float,
         "wpm": float,
-        "summary": {"wins": [...], "practice_words": [...], "encouragement": str},
+        "words_reached": int,
+        "summary": {"encouragement": str},
       }
     """
     if total_words == 0:
         return _empty_score()
 
-    # --- Accuracy (0-60) ---
-    correct = sum(1 for e in word_events if e.get("event_type") in ("correct", "fuzzy"))
-    accuracy_ratio = correct / total_words
-    accuracy_score = round(accuracy_ratio * settings.accuracy_max, 1)
+    # --- Words reached ---
+    # The highest word_index seen in events tells us how far the child got.
+    max_word_index = 0
+    for e in word_events:
+        wi = e.get("word_index", 0) if isinstance(e, dict) else 0
+        if wi > max_word_index:
+            max_word_index = wi
 
-    # --- Fluency (0-25) ---
-    # Based on pace consistency and stalls
-    stalls = sum(1 for e in word_events if e.get("event_type") == "stall")
-    stall_penalty = min(stalls * 2.5, settings.fluency_max)
+    # words_reached = max_word_index + 1 (0-based index → count)
+    words_reached = min(max_word_index + 1, total_words) if word_events else 0
+    completion_ratio = words_reached / total_words
 
-    wpm = (total_words / duration_seconds * 60) if duration_seconds > 0 else 0
-    # Age-appropriate WPM for level 1-2 is around 40-80
-    pace_score = min(wpm / 80.0, 1.0) * settings.fluency_max
-    fluency_score = round(max(pace_score - stall_penalty, 0), 1)
+    # --- Completion (0-80) ---
+    completion_score = round(completion_ratio * 80, 1)
 
-    # --- Independence (0-15) ---
-    total_helps = interventions + skips
-    help_penalty = min(total_helps * 3, settings.independence_max)
-    independence_score = round(max(settings.independence_max - help_penalty, 0), 1)
+    # --- Effort (0-20) ---
+    # Full 20 points if the child reached >=90% of the story.
+    # Partial credit scaled linearly otherwise.
+    # Small bonus if they actually spent time reading (not instant).
+    if completion_ratio >= 0.9:
+        effort_score = 20.0
+    elif completion_ratio >= 0.5:
+        effort_score = round(10 + (completion_ratio - 0.5) / 0.4 * 10, 1)
+    elif completion_ratio >= 0.1:
+        effort_score = round(completion_ratio / 0.5 * 10, 1)
+    else:
+        effort_score = round(completion_ratio * 20, 1)
 
-    total_score = round(accuracy_score + fluency_score + independence_score, 1)
+    total_score = round(min(completion_score + effort_score, 100), 1)
 
-    # --- Summary ---
-    # Find wins (correctly read tricky words)
-    all_correct = [e.get("expected_word", "") for e in word_events
-                   if e.get("event_type") == "correct"]
-    wins = list(dict.fromkeys(all_correct))[:3]
+    # --- WPM ---
+    wpm = (words_reached / duration_seconds * 60) if duration_seconds > 0 else 0
 
-    # Find practice words (most missed)
-    problem = [e.get("expected_word", "") for e in word_events
-               if e.get("event_type") in ("mismatch", "stall", "hint")]
-    practice_words = list(dict.fromkeys(problem))[:3]
-
-    encouragement = _pick_encouragement(total_score)
+    encouragement = _pick_encouragement(total_score, completion_ratio)
 
     return {
         "total": total_score,
-        "accuracy": accuracy_score,
-        "fluency": fluency_score,
-        "independence": independence_score,
+        "completion": completion_score,
+        "effort": effort_score,
+        # Keep legacy keys so templates/progression still work
+        "accuracy": completion_score,
+        "fluency": effort_score,
+        "independence": 0,
         "wpm": round(wpm, 1),
+        "words_reached": words_reached,
         "summary": {
-            "wins": wins,
-            "practice_words": practice_words,
             "encouragement": encouragement,
+            "completion_pct": round(completion_ratio * 100, 1),
+            "words_reached": words_reached,
+            "total_words": total_words,
         },
     }
 
 
-def _pick_encouragement(score: float) -> str:
-    if score >= 85:
-        return "Amazing job! You're a reading superstar! 🌟"
-    if score >= 70:
-        return "Great reading! You're getting better every day! 📚"
-    if score >= 50:
-        return "Good effort! Keep practising and you'll be even better! 💪"
-    return "Nice try! Every time you read, you learn more! Keep going! 🎉"
+def _pick_encouragement(score: float, completion_ratio: float) -> str:
+    if completion_ratio >= 0.95:
+        return "You finished the whole story! You're a reading superstar! 🌟"
+    if completion_ratio >= 0.75:
+        return "Wow, you read so much! Almost finished! 📚"
+    if completion_ratio >= 0.50:
+        return "Great effort! You're more than halfway through! 💪"
+    if completion_ratio >= 0.25:
+        return "Good start! Try reading a little more next time! 🎉"
+    return "Nice try! Every page you read helps you grow! Keep going! 📖"
 
 
 def _empty_score() -> dict:
     return {
         "total": 0,
+        "completion": 0,
+        "effort": 0,
         "accuracy": 0,
         "fluency": 0,
         "independence": 0,
         "wpm": 0,
+        "words_reached": 0,
         "summary": {
-            "wins": [],
-            "practice_words": [],
             "encouragement": "Let's try reading together! 📖",
+            "completion_pct": 0,
+            "words_reached": 0,
+            "total_words": 0,
         },
     }
