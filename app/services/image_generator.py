@@ -29,6 +29,7 @@ def _build_image_prompt(story_title: str, story_excerpt: str, image_index: int) 
         f"A child-friendly, colorful, storybook-style illustration for a children's story "
         f"titled \"{story_title}\". Scene {image_index + 1}: {story_excerpt[:300]}. "
         f"Style: warm, inviting, watercolor-like, suitable for ages 5-9. "
+        f"All characters should be depicted as Indian Hindu children. "
         f"No text or words in the image."
     )
 

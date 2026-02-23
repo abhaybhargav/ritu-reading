@@ -5,9 +5,10 @@ The fuzzy matching is intentionally lenient — it's better to give
 a child credit for a close-enough pronunciation than to mark them
 wrong because the STT model misheard an accent.
 
-Designed for FAST readers: aggressive lookahead, generous fuzzy
-matching in the lookahead window, and high max_advance so the
-cursor can keep up with rapid reading.
+Conservative cursor advancement: the cursor should track the child's
+actual reading position faithfully.  We use a small lookahead window
+and restrict fuzzy/substring matching in it to prevent false-positive
+jumps caused by common short words matching far ahead in the text.
 """
 
 from __future__ import annotations
@@ -142,22 +143,36 @@ def _contains_word(recognized: str, expected: str) -> bool:
     return False
 
 
+_COMMON_SHORT_WORDS = frozenset({
+    "a", "an", "am", "as", "at", "be", "by", "do", "go", "he", "i",
+    "if", "in", "is", "it", "me", "my", "no", "of", "on", "or", "so",
+    "to", "up", "us", "we", "the", "and", "are", "but", "can", "did",
+    "for", "get", "got", "had", "has", "her", "him", "his", "how",
+    "its", "let", "may", "new", "not", "now", "old", "one", "our",
+    "out", "own", "put", "ran", "run", "say", "see", "she", "too",
+    "two", "use", "was", "way", "who", "why", "you", "all", "big",
+})
+
+
 def align_transcript_to_story(
     story_words: list[str],
     transcript_text: str,
     current_index: int = 0,
-    lookahead: int = 8,
+    lookahead: int = 3,
     fuzzy_threshold: int = 2,
-    max_advance: int = 30,
+    max_advance: int = 8,
 ) -> list[dict]:
     """
     Align recognised transcript tokens to story words starting from *current_index*.
 
-    Optimised for fast readers:
-      - Large lookahead window (8 words) so skipped/mumbled words don't block.
-      - Fuzzy matches are allowed in the lookahead window (not just exact).
-      - High max_advance (30 words per call) so rapid reading isn't throttled.
-      - Substring containment check for compound STT tokens.
+    Conservative advancement to prevent the cursor from jumping ahead
+    of the child's actual reading position:
+      - Small lookahead (3 words) — only skips 1-2 mumbled words.
+      - Lookahead requires exact match for common short words to
+        prevent false-positive jumps ("the" matching 5 words ahead).
+      - Fuzzy/substring matching only at the *current* position or
+        at lookahead offset 1.
+      - Tight max_advance (8 words per call) caps total movement.
 
     Returns a list of alignment events:
       [{"word_index": int, "expected": str, "recognized": str,
@@ -195,24 +210,65 @@ def align_transcript_to_story(
             trans_idx += 1
             continue
 
-        # --- 2. Look ahead: exact OR fuzzy match within the lookahead window ---
-        # If the child skipped a word or two, find where they are now.
+        # --- 2. Fuzzy match at current position (try before lookahead) ---
+        if _fuzzy_ok(recognized, expected_norm, fuzzy_threshold):
+            events.append({
+                "word_index": story_idx,
+                "expected": story_words[story_idx],
+                "recognized": raw_token,
+                "match": "fuzzy",
+            })
+            story_idx += 1
+            words_advanced += 1
+            trans_idx += 1
+            continue
+
+        # --- 3. Substring containment at current position ---
+        if _contains_word(recognized, expected_norm):
+            events.append({
+                "word_index": story_idx,
+                "expected": story_words[story_idx],
+                "recognized": raw_token,
+                "match": "fuzzy",
+            })
+            story_idx += 1
+            words_advanced += 1
+            trans_idx += 1
+            continue
+
+        # --- 4. Lookahead: check ahead 1-3 words for a match ---
+        # Guard against common short words triggering false jumps:
+        #   - At offset 1: allow exact, fuzzy, and substring
+        #   - At offset 2-3: exact only, and skip if *both* the
+        #     recognised token and the expected word are short/common
         skip_target = -1
         skip_match_type = "correct"
+        is_short_recognized = recognized in _COMMON_SHORT_WORDS or len(recognized) <= 3
+
         for offset in range(1, min(lookahead + 1, len(story_words) - story_idx)):
             ahead_norm = normalise(story_words[story_idx + offset])
-            if recognized == ahead_norm:
-                skip_target = offset
-                skip_match_type = "correct"
-                break
-            if _fuzzy_ok(recognized, ahead_norm, fuzzy_threshold):
-                skip_target = offset
-                skip_match_type = "fuzzy"
-                break
-            if _contains_word(recognized, ahead_norm):
-                skip_target = offset
-                skip_match_type = "fuzzy"
-                break
+            is_short_ahead = ahead_norm in _COMMON_SHORT_WORDS or len(ahead_norm) <= 3
+
+            if offset == 1:
+                if recognized == ahead_norm:
+                    skip_target = offset
+                    skip_match_type = "correct"
+                    break
+                if _fuzzy_ok(recognized, ahead_norm, fuzzy_threshold):
+                    skip_target = offset
+                    skip_match_type = "fuzzy"
+                    break
+                if _contains_word(recognized, ahead_norm):
+                    skip_target = offset
+                    skip_match_type = "fuzzy"
+                    break
+            else:
+                if is_short_recognized and is_short_ahead:
+                    continue
+                if recognized == ahead_norm:
+                    skip_target = offset
+                    skip_match_type = "correct"
+                    break
 
         if skip_target > 0:
             for s in range(skip_target):
@@ -230,32 +286,6 @@ def align_transcript_to_story(
             })
             words_advanced += skip_target + 1
             story_idx += skip_target + 1
-            trans_idx += 1
-            continue
-
-        # --- 3. Fuzzy match at current position ---
-        if _fuzzy_ok(recognized, expected_norm, fuzzy_threshold):
-            events.append({
-                "word_index": story_idx,
-                "expected": story_words[story_idx],
-                "recognized": raw_token,
-                "match": "fuzzy",
-            })
-            story_idx += 1
-            words_advanced += 1
-            trans_idx += 1
-            continue
-
-        # --- 4. Substring containment at current position ---
-        if _contains_word(recognized, expected_norm):
-            events.append({
-                "word_index": story_idx,
-                "expected": story_words[story_idx],
-                "recognized": raw_token,
-                "match": "fuzzy",
-            })
-            story_idx += 1
-            words_advanced += 1
             trans_idx += 1
             continue
 

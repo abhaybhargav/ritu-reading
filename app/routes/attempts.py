@@ -95,6 +95,7 @@ async def finish_attempt(
             "event_type": e.event_type,
             "expected_word": e.expected_word,
             "recognized_word": e.recognized_word,
+            "word_index": e.word_index,
         }
         for e in events
     ]
@@ -302,7 +303,8 @@ async def reading_session_ws(websocket: WebSocket, attempt_id: int):
 
     # Rate limiter: prevent cursor from advancing faster than a child can read.
     import time as _time
-    MAX_WPS = 5.0  # max words per second (≈300 wpm peak, generous for fast readers)
+    MAX_WPS = 2.5  # max words per second (≈150 wpm — fast for a child, but realistic)
+    MAX_ADVANCE_PER_MSG = 4  # max words the cursor can advance per single STT chunk
     _session_start_time = _time.monotonic()
     _paused_duration = 0.0  # total seconds spent paused (pronunciation popups)
     _pause_start = 0.0  # when the current pause started
@@ -613,6 +615,16 @@ async def reading_session_ws(websocket: WebSocket, attempt_id: int):
                                 stuck_count = 0
                             else:
                                 new_index = current_index
+
+                        # ---- Per-message advance cap ----
+                        if new_index - current_index > MAX_ADVANCE_PER_MSG:
+                            capped_index = current_index + MAX_ADVANCE_PER_MSG
+                            print(
+                                f"[WS] attempt={attempt_id}: per-msg cap: wanted idx={new_index} "
+                                f"but capping to {capped_index} (max +{MAX_ADVANCE_PER_MSG}/msg)",
+                                flush=True,
+                            )
+                            new_index = capped_index
 
                         # ---- Rate limiter ----
                         elapsed = _time.monotonic() - _session_start_time - _paused_duration

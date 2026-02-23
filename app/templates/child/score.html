@@ -1,97 +1,121 @@
 {% extends "base.html" %}
-{% block title %}Your Score – Ritu's ReadAlong Tutor{% endblock %}
+{% block title %}Well Done! – Ritu's ReadAlong Tutor{% endblock %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto py-4 sm:py-8">
+<style>
+    /* Confetti animation */
+    .confetti-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 50;
+        overflow: hidden;
+    }
+    .confetti {
+        position: absolute;
+        top: -20px;
+        width: 12px;
+        height: 12px;
+        border-radius: 2px;
+        animation: confetti-fall linear forwards;
+    }
+    @keyframes confetti-fall {
+        0%   { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+        80%  { opacity: 1; }
+        100% { transform: translateY(105vh) rotate(720deg) scale(0.5); opacity: 0; }
+    }
+    .star-burst {
+        animation: star-burst 0.8s ease-out forwards;
+    }
+    @keyframes star-burst {
+        0%   { transform: scale(0) rotate(-20deg); opacity: 0; }
+        50%  { transform: scale(1.3) rotate(5deg); opacity: 1; }
+        100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+    .slide-up {
+        animation: slide-up 0.6s ease-out forwards;
+        opacity: 0;
+    }
+    @keyframes slide-up {
+        0%   { transform: translateY(30px); opacity: 0; }
+        100% { transform: translateY(0); opacity: 1; }
+    }
+</style>
 
-    <!-- Score hero -->
-    <div class="text-center mb-6 sm:mb-8">
-        <span class="text-5xl sm:text-6xl block mb-3 sm:mb-4">
-            {% if attempt.score_total and attempt.score_total >= 85 %}🌟
-            {% elif attempt.score_total and attempt.score_total >= 70 %}⭐
-            {% elif attempt.score_total and attempt.score_total >= 50 %}👍
-            {% else %}💪{% endif %}
-        </span>
-        <h1 class="font-display text-3xl sm:text-4xl font-bold text-gray-900">
-            {% if attempt.score_total and attempt.score_total >= 85 %}Amazing!
-            {% elif attempt.score_total and attempt.score_total >= 70 %}Great Job!
-            {% elif attempt.score_total and attempt.score_total >= 50 %}Good Effort!
-            {% else %}Keep Going!{% endif %}
+<!-- Confetti -->
+<div class="confetti-container" x-data x-init="
+    const colors = ['#f59e0b','#10b981','#3b82f6','#ef4444','#8b5cf6','#ec4899','#06b6d4','#f97316'];
+    const container = $el;
+    for (let i = 0; i < 80; i++) {
+        const el = document.createElement('div');
+        el.className = 'confetti';
+        el.style.left = Math.random() * 100 + '%';
+        el.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        el.style.animationDuration = (2.5 + Math.random() * 2) + 's';
+        el.style.animationDelay = (Math.random() * 1.5) + 's';
+        el.style.width = (8 + Math.random() * 10) + 'px';
+        el.style.height = (8 + Math.random() * 10) + 'px';
+        el.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+        container.appendChild(el);
+    }
+    setTimeout(() => container.remove(), 6000);
+"></div>
+
+<div class="max-w-2xl mx-auto py-6 sm:py-12 text-center">
+
+    <!-- Star emoji with burst animation -->
+    <div class="star-burst inline-block mb-4" style="animation-delay: 0.3s;">
+        <span class="text-7xl sm:text-8xl block">🌟</span>
+    </div>
+
+    <!-- Main message -->
+    <div class="slide-up" style="animation-delay: 0.6s;">
+        <h1 class="font-display text-3xl sm:text-5xl font-bold text-gray-900 mb-3">
+            Well Done!
         </h1>
-        <p class="text-gray-500 mt-2 font-medium">{{ story.title }}</p>
+        <p class="text-lg sm:text-xl text-gray-600 font-medium mb-2">
+            You read <span class="text-primary-600 font-bold">"{{ story.title }}"</span>
+        </p>
+        <p class="text-base sm:text-lg text-gray-500">
+            {{ summary.encouragement if summary and summary.encouragement else "You did a wonderful job reading today!" }}
+        </p>
     </div>
 
-    <!-- Main score -->
-    <div class="bg-white rounded-2xl sm:rounded-3xl shadow-xl p-5 sm:p-8 mb-4 sm:mb-6 border border-orange-100"
-         x-data="{ score: 0 }" x-init="setTimeout(() => score = {{ attempt.score_total or 0 }}, 200)">
-        <div class="text-center mb-4 sm:mb-6">
-            <div class="text-5xl sm:text-7xl font-display font-bold text-primary-600" x-text="Math.round(score)">0</div>
-            <div class="text-sm text-gray-500 font-semibold mt-1">out of 100</div>
-        </div>
-
-        <!-- Completion bar -->
-        {% set completion_pct = summary.completion_pct if summary and summary.completion_pct else 0 %}
-        {% set words_reached = summary.words_reached if summary and summary.words_reached else 0 %}
-        {% set total_words = summary.total_words if summary and summary.total_words else (story.word_count or 0) %}
-        <div class="mb-4">
-            <div class="flex justify-between text-sm font-semibold text-gray-600 mb-1">
-                <span>📖 Story Completion</span>
-                <span>{{ "%.0f"|format(completion_pct) }}%</span>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
-                <div class="h-full rounded-full transition-all duration-1000 ease-out
-                            {% if completion_pct >= 90 %}bg-green-500
-                            {% elif completion_pct >= 50 %}bg-blue-500
-                            {% elif completion_pct >= 25 %}bg-amber-500
-                            {% else %}bg-orange-400{% endif %}"
-                     x-data="{ width: 0 }"
-                     x-init="setTimeout(() => width = {{ completion_pct }}, 300)"
-                     :style="'width: ' + width + '%'">
-                </div>
-            </div>
-            <p class="text-xs text-gray-400 mt-1 text-center">
-                {{ words_reached }} of {{ total_words }} words read
+    <!-- Celebration card -->
+    <div class="slide-up mt-8 sm:mt-10" style="animation-delay: 1s;">
+        <div class="bg-white rounded-3xl shadow-xl p-6 sm:p-10 border-2 border-amber-200 inline-block w-full max-w-md mx-auto">
+            <div class="text-5xl mb-4">📖</div>
+            <p class="font-display text-xl sm:text-2xl font-bold text-gray-800 mb-2">
+                Story Complete!
             </p>
-        </div>
+            <p class="text-gray-500 text-sm sm:text-base">
+                Every story you read makes you a better reader.
+                <br>Keep up the great work!
+            </p>
 
-        <!-- Sub-scores -->
-        <div class="grid grid-cols-2 gap-2 sm:gap-4">
-            <div class="text-center p-2.5 sm:p-4 bg-green-50 rounded-xl sm:rounded-2xl">
-                <div class="text-xl sm:text-2xl font-bold text-green-600">{{ "%.0f"|format(attempt.score_accuracy or 0) }}</div>
-                <div class="text-[10px] sm:text-xs font-semibold text-green-700 mt-1">Completion</div>
-                <div class="text-[10px] sm:text-xs text-gray-400">/ 80</div>
+            {% if attempt.wpm_estimate and attempt.wpm_estimate > 0 %}
+            <div class="mt-5 pt-5 border-t border-gray-100">
+                <p class="text-sm text-gray-400 font-medium">Reading Speed</p>
+                <p class="text-2xl font-bold text-accent-600 mt-1">
+                    {{ "%.0f"|format(attempt.wpm_estimate) }}
+                    <span class="text-sm font-normal text-gray-400">words/min</span>
+                </p>
             </div>
-            <div class="text-center p-2.5 sm:p-4 bg-blue-50 rounded-xl sm:rounded-2xl">
-                <div class="text-xl sm:text-2xl font-bold text-blue-600">{{ "%.0f"|format(attempt.score_fluency or 0) }}</div>
-                <div class="text-[10px] sm:text-xs font-semibold text-blue-700 mt-1">Effort</div>
-                <div class="text-[10px] sm:text-xs text-gray-400">/ 20</div>
-            </div>
+            {% endif %}
         </div>
     </div>
-
-    <!-- Summary -->
-    {% if summary and summary.encouragement %}
-    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-orange-100">
-        <p class="text-lg font-semibold text-gray-800">{{ summary.encouragement }}</p>
-    </div>
-    {% endif %}
-
-    <!-- Reading speed -->
-    {% if attempt.wpm_estimate %}
-    <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-orange-100 text-center">
-        <p class="text-gray-500 font-medium text-sm">Reading Speed</p>
-        <p class="text-3xl font-bold text-accent-600 mt-1">{{ "%.0f"|format(attempt.wpm_estimate) }} <span class="text-base font-normal text-gray-400">words/min</span></p>
-    </div>
-    {% endif %}
 
     <!-- Actions -->
-    <div class="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+    <div class="slide-up flex flex-col sm:flex-row gap-4 justify-center mt-8 sm:mt-10" style="animation-delay: 1.4s;">
         <a href="/stories/{{ story.id }}"
-           class="px-6 py-3 bg-accent-500 text-white rounded-xl font-bold text-center hover:bg-accent-600 transition-colors">
+           class="px-6 py-3 bg-accent-500 text-white rounded-xl font-bold text-center hover:bg-accent-600 transition-colors shadow-lg">
             🔄 Read Again
         </a>
         <a href="/"
-           class="px-6 py-3 bg-primary-500 text-white rounded-xl font-bold text-center hover:bg-primary-600 transition-colors">
+           class="px-6 py-3 bg-primary-500 text-white rounded-xl font-bold text-center hover:bg-primary-600 transition-colors shadow-lg">
             📚 Try Another Story
         </a>
     </div>
